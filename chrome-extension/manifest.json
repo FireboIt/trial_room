@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "Virtual Try-On (Kolors)",
+    "version": "1.0",
+    "permissions": [
+      "scripting",
+      "activeTab"
+    ],
+    "host_permissions": [
+      "https://www.coupang.com/*",
+      "https://www.amazon.in/*",
+      "https://www.amazon.com/*"
+    ],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "https://www.coupang.com/*",
+          "https://www.amazon.in/*",
+          "https://www.amazon.com/*"
+        ],
+        "js": ["libs/crypto-js.min.js", "content.js"]
+      }
+    ]
+  }
+  
