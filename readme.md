@@ -6,6 +6,12 @@ Built with 💙 [Kolors Try-On (KlingAI)](https://klingai.com/global/) and suppo
 
 ---
 
+## 📸 Example Workflow
+
+| Your Photo | Product Page | Try-On Result |
+|------------|--------------|----------------|
+| ![user](test-images/user.jpg) | ![original](test-images/original.png) | ![generated](test-images/generated.png) |
+
 ## ✨ Features
 
 - 🖼️ Replace the product image with an AI-generated try-on image
