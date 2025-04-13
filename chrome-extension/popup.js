@@ -1,9 +1,9 @@
+// popup.js
 const spinner = document.getElementById("spinner");
 const spinnerText = document.getElementById("spinner-text");
-const imageInput = document.getElementById("imageUpload");
-const imagePreview = document.getElementById("preview");
+const uploadInput = document.getElementById("userImage");
+const previewImg = document.getElementById("preview");
 let countdownInterval;
-let userImageBase64 = null;
 
 function showSpinnerWithCountdown(seconds = 18) {
   let remaining = seconds;
@@ -16,7 +16,7 @@ function showSpinnerWithCountdown(seconds = 18) {
     if (remaining <= 0) {
       clearInterval(countdownInterval);
       hideSpinner();
-      console.log(`[${now()}] ⏱️ Timeout: Spinner auto-hidden after 18s`);
+      console.log(`[${now()}] ⏱️ Timeout: Spinner auto-hidden after ${seconds}s`);
     }
   }, 1000);
 }
@@ -30,52 +30,51 @@ function now() {
   return new Date().toLocaleTimeString();
 }
 
-function generateJwtToken(accessKey, secretKey) {
-  const header = { alg: "HS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: accessKey,
-    exp: now + 1800,
-    nbf: now - 5
-  };
-
-  function base64urlEncode(obj) {
-    const str = JSON.stringify(obj);
-    const words = CryptoJS.enc.Utf8.parse(str);
-    const base64 = CryptoJS.enc.Base64.stringify(words);
-    return base64.replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-  }
-
-  const encodedHeader = base64urlEncode(header);
-  const encodedPayload = base64urlEncode(payload);
-  const signature = CryptoJS.HmacSHA256(
-    encodedHeader + "." + encodedPayload,
-    secretKey
-  );
-  const encodedSignature = CryptoJS.enc.Base64.stringify(signature)
-    .replace(/=+$/, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+function getUserImage() {
+  return localStorage.getItem("userImage") || "";
 }
 
-// 👤 Handle file input and preview
-imageInput.addEventListener("change", (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+function setUserImage(base64) {
+  localStorage.setItem("userImage", base64);
+}
 
-  const reader = new FileReader();
-  reader.onload = function () {
-    const base64 = reader.result.split(",")[1]; // Remove prefix
-    userImageBase64 = base64;
-    imagePreview.src = reader.result;
-    imagePreview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+function resizeImage(file, maxSize = 512) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target.result;
+    };
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const resizedDataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      resolve(resizedDataUrl.split(",")[1]);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+uploadInput.addEventListener("change", async () => {
+  const file = uploadInput.files[0];
+  if (!file) {
+    console.warn("⚠️ No file selected.");
+    return;
+  }
+
+  const base64 = await resizeImage(file);
+  setUserImage(base64);
+
+  const previewUrl = "data:image/jpeg;base64," + base64;
+  previewImg.src = previewUrl;
+  previewImg.style.display = "block";
+  console.log(`[${now()}] ✅ Resized and previewed: ${file.name}`);
 });
 
-// 🔘 Try On button
 document.getElementById("tryOnBtn").addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   console.log(`[${now()}] ⏳ Button clicked`);
@@ -88,72 +87,59 @@ document.getElementById("tryOnBtn").addEventListener("click", async () => {
       return;
     }
 
+    const garmentImageUrl = response.imageUrl;
+    const userImageBase64 = getUserImage();
     if (!userImageBase64) {
-      console.log(`[${now()}] ⚠️ No user image uploaded.`);
-      alert("Please upload a photo before trying on.");
+      alert("Please upload your image first.");
       hideSpinner();
+      console.warn(`[${now()}] ❌ No user image in localStorage.`);
       return;
     }
-
-    const garmentImageUrl = response.imageUrl;
 
     const payload = {
       model_name: "kolors-virtual-try-on-v1-5",
       human_image: userImageBase64,
-      cloth_image: garmentImageUrl
+      cloth_image: garmentImageUrl,
+      site_url: tab.url
     };
 
     console.log(`[${now()}] 📤 Sending try-on task to proxy...`);
 
-    const submitRes = await fetch("http://localhost:5050/tryon", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let submitJson;
     try {
-      submitJson = await submitRes.json();
-      console.log(`[📦] Response from proxy:`, submitJson);
-    } catch (err) {
-      console.error(`[❌] Failed to parse response from /tryon:`, err);
+      const submitRes = await fetch("https://d967d59e-56b2-46f7-b1a8-b8ed50d7d449-00-6w8577xdgn8i.sisko.replit.dev/tryon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const submitJson = await submitRes.json();
+      const taskId = submitJson.data.task_id;
+      console.log(`[${now()}] ✅ Task submitted with ID: ${taskId}`);
+
+      const pollImage = async () => {
+        console.log(`[${now()}] 🔄 Polling task status...`);
+        const statusRes = await fetch(`https://d967d59e-56b2-46f7-b1a8-b8ed50d7d449-00-6w8577xdgn8i.sisko.replit.dev/status/${taskId}`);
+        const statusJson = await statusRes.json();
+        const status = statusJson.data.task_status;
+        console.log(`[${now()}] 🔍 Status: ${status}`);
+
+        if (status === "succeed") {
+          const tryOnUrl = statusJson.data.task_result.images[0].url;
+          chrome.tabs.sendMessage(tab.id, { type: "SET_TRYON_IMAGE", url: tryOnUrl });
+          hideSpinner();
+          console.log(`[${now()}] ✅ Image replaced successfully.`);
+        } else if (status === "failed") {
+          console.log(`[${now()}] ❌ Task failed`);
+          hideSpinner();
+        } else {
+          setTimeout(pollImage, 1000);
+        }
+      };
+
+      pollImage();
+    } catch (error) {
+      console.error(`[${now()}] ❌ Try-on request failed:`, error);
       hideSpinner();
-      return;
     }
-    
-    const taskId = submitJson?.data?.task_id;
-    if (!taskId) {
-      console.error(`[❌] task_id missing in response`);
-      hideSpinner();
-      return;
-    }
-    
-    console.log(`[${now()}] ✅ Task submitted with ID: ${taskId}`);
-
-    const pollImage = async () => {
-      console.log(`[${now()}] 🔄 Polling task status...`);
-
-      const statusRes = await fetch(`http://localhost:5050/status/${taskId}`);
-      const statusJson = await statusRes.json();
-      const status = statusJson.data.task_status;
-
-      console.log(`[${now()}] 🔍 Status: ${status}`);
-
-      if (status === "succeed") {
-        const tryOnUrl = statusJson.data.task_result.images[0].url;
-        chrome.tabs.sendMessage(tab.id, { type: "SET_TRYON_IMAGE", url: tryOnUrl });
-        hideSpinner();
-        console.log(`[${now()}] ✅ Spinner hidden after success`);
-      } else if (status === "failed") {
-        console.log(`[${now()}] ❌ Task failed`);
-        hideSpinner();
-      } else {
-        setTimeout(pollImage, 1000);
-      }
-    };
-
-    pollImage();
   });
 });

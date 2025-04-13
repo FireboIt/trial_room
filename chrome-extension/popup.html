@@ -1,111 +1,70 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Virtual Try-On</title>
-    <style>
-      body {
-        margin: 0;
-        padding: 16px;
-        font-family: 'Segoe UI', sans-serif;
-        width: 280px;
-        background-color: #f9f9f9;
-      }
-      .card {
-        background: white;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .file-input {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      input[type="file"] {
-        border: 1px solid #ccc;
-        padding: 6px;
-        border-radius: 6px;
-        font-size: 14px;
-      }
-      #preview {
-        max-width: 100%;
-        border-radius: 8px;
-        display: none;
-      }
-      button {
-        padding: 10px 14px;
-        background: #007bff;
-        border: none;
-        border-radius: 8px;
-        color: white;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-      button:hover {
-        background: #0056b3;
-      }
-      #spinner {
-        display: none;
-        text-align: center;
-      }
-      .lds-ring {
-        display: inline-block;
-        position: relative;
-        width: 32px;
-        height: 32px;
-        margin-bottom: 4px;
-      }
-      .lds-ring div {
-        box-sizing: border-box;
-        display: block;
-        position: absolute;
-        width: 26px;
-        height: 26px;
-        margin: 3px;
-        border: 3px solid #007bff;
-        border-radius: 50%;
-        animation: lds-ring 1.2s linear infinite;
-        border-color: #007bff transparent transparent transparent;
-      }
-      .lds-ring div:nth-child(1) {
-        animation-delay: -0.45s;
-      }
-      .lds-ring div:nth-child(2) {
-        animation-delay: -0.3s;
-      }
-      .lds-ring div:nth-child(3) {
-        animation-delay: -0.15s;
-      }
-      @keyframes lds-ring {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      #spinner-text {
-        font-size: 12px;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <div class="file-input">
-        <label for="imageUpload"><strong>Upload your photo:</strong></label>
-        <input type="file" id="imageUpload" accept="image/*" />
-        <img id="preview" />
-      </div>
-      <button id="tryOnBtn">Try On</button>
-      <div id="spinner">
-        <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
-        <div id="spinner-text">Processing... 18s left</div>
-      </div>
-    </div>
+<head>
+  <title>Virtual Try-On</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      width: 300px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #spinner {
+      display: none;
+      text-align: center;
+      font-size: 14px;
+      color: #444;
+    }
+    #userImage {
+      margin-top: 8px;
+    }
+    #disclaimer {
+      font-size: 12px;
+      color: #666;
+      border-top: 1px solid #ccc;
+      padding-top: 8px;
+    }
+    #linkedin {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    #tryOnBtn {
+      padding: 6px 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #tryOnBtn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h3>Virtual Try-On</h3>
 
-    <script src="libs/crypto-js.min.js"></script>
-    <script src="popup.js"></script>
-  </body>
+  <label for="userImage">Upload Your Image:</label>
+  <input type="file" accept="image/*" id="userImage">
+  <img id="preview" src="" alt="Your Image Preview" style="max-width: 100%; display: none; border-radius: 4px;" />
+
+  <button id="tryOnBtn">Try It On</button>
+
+  <div id="spinner">
+    <p id="spinner-text">Processing...</p>
+  </div>
+
+  <div id="disclaimer">
+    Fit is not guaranteed.<br>
+    This is for fun use only.<br>
+    <div id="linkedin">
+    <a href="https://www.linkedin.com/in/agrohit/" target="_blank">Connect on LinkedIn</a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+  <script src="libs/crypto-js.min.js"></script>
+</body>
 </html>
